@@ -77,8 +77,9 @@ h264_sei_pack(uint8_t *sei, int *len, char *opts, bool uu)
 
     if (uu) {
         memcpy(payload, uuid, 16);
-        sprintf(payload + 16, "x264 - core 148 - H.264/MPEG-4 AVC codec - "
-             "Copyright 2003-2018 - http://www.videolan.org/x264.html - options: %s", opts);
+        // sprintf(payload + 16, "x264 - core 148 - H.264/MPEG-4 AVC codec - "
+            //  "Copyright 2003-2018 - http://www.videolan.org/x264.html - options: %s", opts);
+        sprintf(payload + 16, "%s",opts);
 
     } else {
         type = SEI_SELF_DEFINE_LAYOUT;
