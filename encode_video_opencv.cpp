@@ -1,8 +1,16 @@
-//Encode SEI data into NAL units with H.264 encoding
-//Raw frames are obtained using opencv and are encoded with metdata using H.264 standard
-//Flow: Initialize codec info--> Capture raw data using OpenCV VideoCapture --> Convert from AV_PIX_FMT_BGR24 to AV_PIX_FMT_YUV_420P
-//-->Encode SEI info to videostream
-
+/**
+ * @file encode_video_opencv.cpp
+ * @author your name (you@domain.com)
+ * @brief 
+ * Encode Supplemental Enhancement Information(SEI) into NAL units
+ * of the H.264 Byte-Stream
+ * Tested using integrated laptop camera
+ * @version 0.1
+ * @date 2020-10-02
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include <iostream>
 #include <vector>
 #include <ctime>
@@ -27,27 +35,40 @@ extern "C" {
 //Macros
 #define SWS_BICUBIC 4
 using namespace std;
-//For debug
+
 void breakpoint()
 {
+    /**
+     * Breakpoint
+     * 
+     */
     char ch;
     cout<<"Waiting for input..."<<endl;
     cin>>ch;
 }
 
-// void display_image(string winname,cv::Mat img)
-// {
-//     cv::namedWindow(winname,CV_WINDOW_NORMAL);
-//     cv::imshow(winname,img);
-//     cv::waitKey(1);
-// }
-//---------------------------------------Function prototype-----------------------------------------//
+void display_image(string winname,cv::Mat img)
+{
+    /**
+     * @brief Display image in a new cv::named Window object
+     * 
+     */
+    cv::namedWindow(winname,CV_WINDOW_NORMAL);
+    cv::imshow(winname,img);
+    cv::waitKey(1);
+}
+//---------------------------------------Function prototypes-----------------------------------------//
 static void encode(AVCodecContext *enc_ctx, AVFrame *frame, AVPacket *pkt,
                    FILE *outfile);
 char* get_timestamp();
+//---------------------------------------------------------------------------------------------------//
 
 class metadata_encode 
 {
+    /**
+     * @brief Utils for encoding metdata 
+     * 
+     */
     public:
     //Data Members
     const char *filename, *codec_name;
@@ -72,10 +93,14 @@ class metadata_encode
 int metadata_encode::initialize_codec()
 {
 
-    //Encode frames using ffmpeg
+    /**
+     * @brief Initialize codec parameters for H.264 Encoding
+     * 
+     */
     codec_name = "libx264";
     filename = "test.h264";
     av_register_all();
+
     codec = avcodec_find_encoder_by_name(codec_name);
     if(!codec)
     {
@@ -157,6 +182,11 @@ int metadata_encode::initialize_codec()
 
 void metadata_encode::capture_data()
 {
+    /**
+     * Capture frames from the camera using OpenCV
+     * Currently uses default backend.
+     * 
+     */
 
     cv::VideoCapture cap(0);
     if(!cap.isOpened())
@@ -168,7 +198,7 @@ void metadata_encode::capture_data()
     cap.set(cv::CAP_PROP_FRAME_HEIGHT,dst_height);
 
     //Allocate cv::Mat with extra bytes
-    std::vector<uint8_t> imgbuf(dst_height * dst_width * 3 + 16); //16 is arbitrary?
+    std::vector<uint8_t> imgbuf(dst_height * dst_width * 3 + 16); 
     cv::Mat image(dst_height, dst_width, CV_8UC3, imgbuf.data(), dst_width * 3);
 
 
@@ -179,7 +209,7 @@ void metadata_encode::capture_data()
         if(!end_of_stream)
         {
             cap>>image;
-            cv::imshow("Frame",image); //Read frames from webcam
+            cv::imshow("Frame",image); 
             const int stride[] = {static_cast<int>(image.step[0])};
             sws_scale(swsctx,&image.data,stride,0,image.rows,frame->data,frame->linesize);
             frame->pts = count; //Timestamp information
@@ -208,9 +238,14 @@ void metadata_encode::capture_data()
 static void encode(AVCodecContext *enc_ctx, AVFrame *frame, AVPacket *pkt,
                    FILE *outfile)
 {
+    /**
+     * @brief 
+     * @param *frame: Pointer of type AVFrame(describes raw video data)
+     * @param *pkt: Pointer of type AVPacket(filled with compressed data in the function)
+     * @param *outfile: Output H.264 Video File
+     * 
+     */
     int ret;
-
-    /* send the frame to the encoder */
     if (frame)
     {
         // printf("Send frame %3"PRId64"\n", frame->pts);
@@ -271,145 +306,6 @@ int main(int argc)
     metadata_encode metadata_encode_obj;
     err_code = metadata_encode_obj.initialize_codec();
     metadata_encode_obj.capture_data();
-    // const char *filename, *codec_name;
-    // const AVCodec *codec;
-    // AVCodecContext *c= NULL;
-    // int i, ret, x, y;
-    // FILE *f;
-    // AVFrame *frame;
-    // AVPacket *pkt;
-    // uint8_t endcode[] = { 0, 0, 1, 0xb7 };
-
-    // const int dst_width = 640;
-    // const int dst_height = 480;
-    // const AVRational dst_fps = {30,1};
-
-    // //Encode frames using ffmpeg
-    // codec_name = "libx264";
-    // filename = "test.h264";
-    // av_register_all();
-    // codec = avcodec_find_encoder_by_name(codec_name);
-    // if(!codec)
-    // {
-    //     std::cerr << "Codec"<<codec_name<<"not found"<<endl;
-    //     exit(1);
-    // }
-
-    // c = avcodec_alloc_context3(codec);
-    // if (!c) {
-    //     std::cerr<<"Could not allocate video codec context"<<endl;
-    //     exit(1);
-    // }
-
-    // pkt = av_packet_alloc();
-    // if(!pkt)
-    // {
-    //     exit(1);
-    // }
-    // //Streaming parameters
-    // c->bit_rate = 400000;
-    // c->width = dst_width;
-    // c->height = dst_height;
-    // c->time_base = av_inv_q(dst_fps);
-    // c->framerate = dst_fps;
-    // c->gop_size = 10;
-    // c->max_b_frames = 1;
-    // c->pix_fmt = AV_PIX_FMT_YUV420P;
-
-    //  if (codec->id == AV_CODEC_ID_H264)
-    //     av_opt_set(c->priv_data, "preset", "slow", 0);
-
-    //  /* open it */
-    // ret = avcodec_open2(c, codec, NULL);
-    // if (ret < 0) {
-    //     // cerr<<"Could not open codec"<<av_err2str(ret)<<endl;
-    //     cerr <<"Could not open codec"<<endl;
-    //     exit(1);
-    // }
-
-    // f = fopen(filename, "wb");
-    // if (!f)
-    // {
-    //     cerr<<"Could not open"<<filename<<endl;
-    //     exit(1);
-    // }
-
-    // frame = av_frame_alloc();
-    // if (!frame) 
-    // {
-    //     cerr<<"Could not allocate video frame"<<endl;
-    //     exit(1);
-    // }
-
-    // // initialize sample scaler
-    // //For conversion from AV_PIX_FMT_BGR24 to AV_PIX_FMT_YUV_420P
-    // SwsContext* swsctx = sws_getCachedContext(
-    //     nullptr, dst_width, dst_height, AV_PIX_FMT_BGR24,
-    //     dst_width, dst_height, c->pix_fmt, SWS_BICUBIC, nullptr, nullptr, nullptr);
-    // if (!swsctx) {
-    //     std::cerr << "fail to sws_getCachedContext";
-    //     return 2;
-    // }
-
-    
-    // //Allocate frame buffer
-    // std::vector<uint8_t> framebuf(avpicture_get_size(c->pix_fmt, dst_width, dst_height));
-    // ret  = avpicture_fill(reinterpret_cast<AVPicture*>(frame), framebuf.data(), c->pix_fmt, dst_width, dst_height);
-    // if(ret < 0)
-    // {
-    //     cout<<"Failed at avpicture_fill"<<endl;
-    // }
-    // frame->width = dst_width;
-    // frame->height = dst_height;
-    // frame->format = static_cast<int>(c->pix_fmt);
-    // cout<<"frame->width:"<<frame->width<<endl;
-    // cout<<"frame-height:"<<frame->height<<endl;
-    // cout<<"frame->format:"<<frame->format<<endl;
-    
-    //Capture frames using OpenCV
-    // cv::VideoCapture cap(0);
-    // if(!cap.isOpened())
-    // {
-    //     std::cerr<<"Couldn't open videostream"<<endl;
-    // }
-
-    // cap.set(cv::CAP_PROP_FRAME_WIDTH,dst_width);
-    // cap.set(cv::CAP_PROP_FRAME_HEIGHT,dst_height);
-
-    // //Allocate cv::Mat with extra bytes
-    // std::vector<uint8_t> imgbuf(dst_height * dst_width * 3 + 16); //16 is arbitrary?
-    // cv::Mat image(dst_height, dst_width, CV_8UC3, imgbuf.data(), dst_width * 3);
-
-
-    // bool end_of_stream = false;
-    // int count = 0;
-    // //Encode 3 seconds of video
-    // do {
-    //     if(!end_of_stream)
-    //     {
-    //         cap>>image;
-    //         cv::imshow("Frame",image); //Read frames from webcam
-    //         const int stride[] = {static_cast<int>(image.step[0])};
-    //         sws_scale(swsctx,&image.data,stride,0,image.rows,frame->data,frame->linesize);
-    //         frame->pts = count; //Timestamp information
-    //         //encode image
-    //         encode(c,frame,pkt,f);
-    //         count++;
-    //         // end_of_stream = true;
-    //     }
-
-    // }
-    // while(count <= 90);
-    
-    // //flush the encoder
-    // encode(c,NULL,pkt,f);
-
-    // fwrite(endcode, 1, sizeof(endcode), f);
-    // fclose(f);
-    
-    // avcodec_free_context(&c);
-    // av_frame_free(&frame);
-    // av_packet_free(&pkt);
     return 0;
 
 }
