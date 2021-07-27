@@ -134,15 +134,25 @@ int metadata_encode::initialize_codec()
     {
         exit(1);
     }
-    //Streaming parameters
-    c->bit_rate = 400000;
+    //encoder codec params
+
     c->width = dst_width;
     c->height = dst_height;
-    c->time_base = av_inv_q(dst_fps);
+    c->pix_fmt = AV_PIX_FMT_YUV420P;
+
     c->framerate = dst_fps;
     c->gop_size = 10;
+
+
+    //control rate
+    c->bit_rate = 2 * 1000 * 1000;
     c->max_b_frames = 1;
-    c->pix_fmt = AV_PIX_FMT_YUV420P;
+    c->rc_buffer_size = 4 * 1000 * 1000;
+    c->rc_max_rate = 2 * 1000 * 1000;
+    c->rc_min_rate = 2.5 * 1000 * 1000;
+
+    //time base
+    c->time_base = av_inv_q(dst_fps);
 
     if (codec->id == AV_CODEC_ID_H264)
         av_opt_set(c->priv_data, "preset", "slow", 0);
